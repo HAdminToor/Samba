@@ -119,6 +119,12 @@ control bind-chroot disabled
 grep -q 'bind-dns' /etc/bind/named.conf || echo 'include "/var/lib/samba/bind-dns/named.conf";' >> /etc/bind/named.conf
 nano /etc/bind/options.conf
 ```
+```
+tkey-gssapi-keytab "/var/lib/samba/bind-dns/dns.keytab";
+minimal-responses yes;
+
+category lame-servers {null;};
+```
 ![image](https://github.com/NyashMan/DEMO2024/assets/1348639/52f85f0f-c239-430c-89ae-db65267e00b5)  
 ![image](https://github.com/NyashMan/DEMO2024/assets/1348639/fe226eca-2c18-4af4-8547-a4ea54a27b5c)  
 ```
@@ -239,6 +245,28 @@ nano /etc/samba/smb.conf
 ```
 ![image](https://github.com/NyashMan/DEMO2024/assets/1348639/1e08ba6e-6325-4646-b942-a651c2b025a4)  
 ```
+[Branch_Files]
+path=/opt/branch
+writable = yes
+read only = no
+valid users = @"DEMO\Branch admins"
+
+[Network]
+path=/opt/network
+writable = yes
+read only = no
+valid users = @"DEMO\Network admins"
+
+[Admin_Files]
+path=/opt/admin
+writable = yes
+read only = no
+valid users = @"DEMO\Admins"
+
+```
+
+
+```
 systemctl restart samba
 ```
 ## **BR-SRV**
@@ -246,11 +274,41 @@ systemctl restart samba
 nano /etc/pam.d/system-auth
 ```
 ![image](https://github.com/NyashMan/DEMO2024/assets/1348639/f163a907-7f63-4bd5-937c-b34c860ad594)  
+
+```
+include
+[success=1 default=ignore]    pam_succeed_if.so service = systemd-user quite
+optional pam_mount.so disable_interactive
+```
+
 ```
 nano /etc/security/pam_mount.conf.xml
 ```
 ![image](https://github.com/NyashMan/DEMO2024/assets/1348639/eebb7cd4-c869-4d23-acd0-528654b8ac7b)
 **P.S. напишите один раздел, затем скопируйте его 2 раза, поменяв uid и path**  
+
+```
+<volume uid="Admin"
+fstype="cifs"
+server="HQ-SRV.demo.first"
+path="Admin_Files"
+mountpoint="/mnt/All_files"
+options="sec=krb5i,cruid=%(USERUID),nounix,uid=%(USERUID),gid=%(USERGID),file_mode=0664,dir_mode=0775"/>
+
+<volume uid="Network admin"
+fstype="cifs"
+server="HQ-SRV.demo.first"
+path="Network"
+mountpoint="/mnt/All_files"
+options="sec=krb5i,cruid=%(USERUID),nounix,uid=%(USERUID),gid=%(USERGID),file_mode=0664,dir_mode=0775"/>
+
+<volume uid="Branch admin"
+fstype="cifs"
+server="HQ-SRV.demo.first"
+path="Branch_Files"
+mountpoint="/mnt/All_files"
+options="sec=krb5i,cruid=%(USERUID),nounix,uid=%(USERUID),gid=%(USERGID),file_mode=0664,dir_mode=0775"/>
+```
 
 **Проверяем**
 Заходим из под пользователя Admin:  
